@@ -1,4 +1,20 @@
 -- Generated via ./bqetl generate glean_usage
+CREATE TEMP FUNCTION extras_to_json(obj JSON)
+RETURNS JSON
+LANGUAGE js
+AS
+  """
+if (obj === null) {
+  return null;
+}
+let result = {};
+for (let [idx, { key, value }] of Object.entries(obj)) {
+  result[key] = value;
+}
+
+return result;
+""";
+
 CREATE OR REPLACE VIEW
   `{{ project_id }}.{{ target_view }}`
 AS
@@ -65,7 +81,7 @@ SELECT
   event.timestamp AS event_timestamp,
   event.category AS event_category,
   event.name AS event_name,
-  event.extra AS event_extra
+  extras_to_json(TO_JSON(event.extra)) AS event_extra
 FROM `{{ project_id }}.{{ dataset }}.events` AS e
 CROSS JOIN UNNEST(e.events) AS event
 {% endfor %}
